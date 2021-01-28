@@ -29,6 +29,7 @@ void* threadSort(void* arg){
 
   if (((struct array*)arg)->thread2WaitFor != NULL){
     pthread_join(*((struct array*)arg)->thread2WaitFor, NULL);
+    //printf("About to merge RL & RR. left: %d, middle: %d, right: %d\n", ((struct array*) arg)->left, ((struct array*) arg)->right, ((struct array*) arg)->thread2WaitForRight);
     merge(((struct array*) arg)->arr, ((struct array*) arg)->left, ((struct array*) arg)->right, ((struct array*) arg)->thread2WaitForRight);
   }
 
@@ -46,33 +47,25 @@ void multiThreadedMergeSort(int arr[], int left, int right)
 {
   pthread_t threads[3];
   struct array threadData[4];
-
-  printf("Status of array on entry:\n");
-  for (int i = left; i <= right; ++i){
-    printf(" %d", arr[i]);
-  }
-  printf("\n");
-
-  int rightBounds[4];
-  rightBounds[1] = (right + left) / 2;
-  rightBounds[0] = (rightBounds[1] + left) / 2;
-  rightBounds[2] = (right + rightBounds[1]) / 2;
-  rightBounds[3] = right;
-
+  int half = (right - left) / 2;
+  int quarter1 = half / 2;
+  int quarter3 = half - (quarter1 + 1);
+  //initialize args
   threadData[0].arr = arr;
   threadData[0].left = left;
-  threadData[0].right = rightBounds[0];
+  threadData[0].right = left + quarter1;
   threadData[0].thread2WaitFor = NULL;
   for (int i = 1; i < 4; ++i){
     threadData[i].arr = arr;
-    threadData[i].left = rightBounds[i - 1] + 1;
-    threadData[i].right = rightBounds[i];
+    threadData[i].left = threadData[i - 1].right + 1;
+    threadData[i].right = threadData[i].left + quarter3;
     if (i == 2){
       threadData[i].thread2WaitFor = &threads[2];
+      threadData[i].thread2WaitForRight = right;
     }
     else{
       threadData[i].thread2WaitFor = NULL;
-      threadData[i].thread2WaitForRight = right;
+      threadData[i].thread2WaitForRight = 0;
     }
   }
 
@@ -87,15 +80,9 @@ void multiThreadedMergeSort(int arr[], int left, int right)
   singleThreadedMergeSort(arr, left, threadData[0].right);
 
   pthread_join(threads[0], NULL);
-
-  printf("Status of array before merging LL & LR:\n");
-  for (int i = left; i <= right; ++i){
-    printf(" %d", arr[i]);
-  }
-  printf("\n");
-
   merge(arr, left, threadData[0].right, threadData[1].right);
 
   pthread_join(threads[1], NULL);
+
   merge(arr, left, threadData[1].right, right);
 }
