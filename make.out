@@ -1,0 +1,4 @@
+sort.c: In function ‘multiThreadedMergeSort’:
+sort.c:20:7: warning: unused variable ‘i’ [-Wunused-variable]
+   int i = 0;
+       ^
